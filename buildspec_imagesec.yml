@@ -1,0 +1,24 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - echo "in the install phase"
+    finally:
+      - echo This always runs even if the login command fails 
+  pre_build:
+    commands:
+      - apt-get install wget apt-transport-https gnupg
+      - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
+      - echo deb https://aquasecurity.github.io/trivy-repo/deb bionic main | tee -a /etc/apt/sources.list.d/trivy.list
+      - apt-get update
+      - apt-get install -y trivy
+      - REPOSITORY_URI=533267302674.dkr.ecr.us-east-1.amazonaws.com/labdevsecops/node:latest
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 533267302674.dkr.ecr.us-east-1.amazonaws.com
+      - trivy image 533267302674.dkr.ecr.us-east-1.amazonaws.com/labdevsecops/node:latest 
+     
+  post_build:
+    commands:
+      - echo test success

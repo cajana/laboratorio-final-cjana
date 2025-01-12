@@ -1,0 +1,29 @@
+##Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+##SPDX-License-Identifier: MIT-0
+version: 0.2
+phases:
+  install:
+    commands:
+      - echo "in the install phase"
+    finally:
+      - echo This always runs even if the login command fails 
+  pre_build:
+    commands:
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+      - unzip sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+      - mv sonar-scanner-6.2.1.4610-linux-x64 /opt/sonar-scanner
+      - chmod -R 775 /opt/sonar-scanner
+      - echo "stage pre_build completed"
+  build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR
+      - ls -ltr .
+      - /opt/sonar-scanner/bin/sonar-scanner -Dsonar.sources=. -Dproject.settings=sonar-project.properties -Dsonar.host.url=$SonarQube_URL -Dsonar.login=$SonarQube_Access_Token -Dsonar.qualitygate.wait=true > sonarqube_scanreport.json
+      - echo "build stage completed"
+  
+  post_build:
+    commands:
+      - grep "QUALITY GATE STATUS" sonarqube_scanreport.json| grep "PASSED" sonarqube_scanreport.json
+artifacts:
+  type: zip
+  files: '**/*'

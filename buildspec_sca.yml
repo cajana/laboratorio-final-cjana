@@ -1,0 +1,32 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - echo "install phase....."
+  pre_build:
+    commands:
+      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v11.1.1/dependency-check-11.1.1-release.zip
+      - unzip dependency-check-11.1.1-release.zip
+      - rm dependency-check-11.1.1-release.zip
+      - mv dependency-check /opt/dependency-check
+      - chmod -R 775 /opt/dependency-check/bin/dependency-check.sh
+      - ls -l /opt/dependency-check/bin/dependency-check.sh
+      - echo "stage pre_build completed"
+  build:
+    commands: 
+      - echo Running Dependency-Check analysis
+      - cd $CODEBUILD_SRC_DIR && cd ..
+      - pwd 
+      - /opt/dependency-check/bin/dependency-check.sh --scan . --out /tmp/
+      - echo "OWASP dependency check analysis status is completed..."; 
+      - high_risk_dependency=$( cat /tmp/dependency-check-report.html | grep -c "HIGHEST" )
+  post_build:
+    commands:
+      - |
+        if [ $high_risk_dependency -gt 0 ]; then
+          echo "there are high or medium alerts.. failing the build"
+          exit 1; 
+        fi
+artifacts:
+  type: zip
+  files: '**/*'
